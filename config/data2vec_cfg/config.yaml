@@ -1,0 +1,4 @@
+
+defaults:
+  - train_task: data2vec
+  - _self_

@@ -1,0 +1,190 @@
+# @package _group_
+
+TrainTask:
+
+  dataset_class:
+    _target_: dataset.dataset.Dataset
+    path2load: C:\Users\moshe\PycharmProjects\datasets\cifar10
+    type_files: npy
+    labels: False
+    dataset_names: cifar10
+
+  input_shape:
+    -
+      -
+      - 32
+      - 32
+      - 3
+    -
+      -
+      - 16
+
+  model:
+    _target_: model.data2vec_image_model.Data2VecModel
+
+    len_latent_space: 16 #
+    tau: 0.999
+
+    inputs1:
+      - 32
+      - 32
+      - 3
+
+    inputs2:
+      - 16
+
+    conv_encoder:
+      _target_: layers.conv_image_encoder.ConvFeatureExtractionModel
+      activation: gelu
+      units: 512
+      conv_layers:
+        -
+          -
+            - 64
+            - 3
+            - 1
+          -
+            - 64
+            - 3
+            - 1
+        -
+          -
+            - 128
+            - 3
+            - 2
+          -
+            - 128
+            - 3
+            - 1
+        -
+          -
+            - 128
+            - 3
+            - 1
+          -
+            - 128
+            - 3
+            - 1
+        -
+          -
+            - 256
+            - 3
+            - 1
+          -
+            - 256
+            - 3
+            - 1
+        -
+          -
+            - 256
+            - 3
+            - 1
+          -
+            - 256
+            - 3
+            - 1
+        -
+          -
+            - 512
+            - 3
+            - 2
+          -
+            - 512
+            - 3
+            - 1
+        -
+          -
+            - 512
+            - 3
+            - 1
+          -
+            - 512
+            - 3
+            - 1
+
+      num_duplicate_layer:
+        - 2
+        - 1
+        - 2
+        - 1
+        - 2
+        - 1
+        - 2
+
+      dropout: 0.0
+      conv_bias: False
+
+    masking: True
+    masking_layer:
+      _target_: layers.masking.Masking
+      num_channels: 512
+
+    ffn:
+      _target_: layers.ffn.FFN
+      dff: 512
+      activation: gelu
+      num_layers: 2
+
+    top_k_transformer: 8
+
+    transformer_encoder:
+      _target_: layers.transformer_encoder.TransformerEncoder
+      num_layers: 12
+      d_model: 512
+      num_attention_heads: 8
+      dff: 768
+      dropout_rate: 0.1
+      dim_conv: 1
+
+  loss:
+    _target_: losses.smooth_l1_loss.SmoothL1Loss
+    beta: 0.5
+    tile_params:
+      - 1
+      - 512
+
+  callbacks:
+#    -
+#      _target_: callbacks.callbacks.EMACallback
+#      t_n: 30000
+#      t_0: 0.999
+#      t_e: 0.9999
+    -
+      _target_: callbacks.callbacks.LearnRateSchedulerTriStage
+      initial_lr: 0.0001
+      peak: 0.00005
+      steps2warp_up: 0.03
+      steps2hold: 0.67
+      decay: 0.3
+      train_steps_per_epoch: 10
+      epochs: 15
+
+  optimizer:
+    _target_: tensorflow.keras.optimizers.Adam
+    learning_rate: 0.0005
+    beta_1: 0.9
+    beta_2: 0.99
+
+  train_steps_per_epoch: 10
+
+  processor:
+    _target_: processors.processor_images.Processor
+    t_axis: 16
+    prob2mask: 0.065
+    masking_size: 2
+    load_label: False
+
+  batch_size:
+    train: 64
+    test: 32
+    valid: 64
+
+  epochs: 15
+  path2save_model: C:\Users\moshe\PycharmProjects\save_models\models
+  model_name: data2vec
+
+  results:
+    _target_: results.results.Results
+    path2save_results: C:\Users\moshe\PycharmProjects\save_models\results
+    num_class: 100
+
