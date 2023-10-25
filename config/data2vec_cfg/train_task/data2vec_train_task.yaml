@@ -10,131 +10,36 @@ TrainTask:
     labels: True
     dataset_names: tal_noise_1
 
-  path2load_model: #/home/moshelaufer/PycharmProjects/results/checkpoint/synth_autoencoder_noy/
+  path2load_model:
 
-  cfg:
+# based on: https://huggingface.co/docs/transformers/model_doc/data2vec # Data2VecVisionConfig
+  model_cfg:
     num_hidden_layers: 6
     num_attention_heads: 6
     intermediate_size: 2048
     image_size: 32
     num_channels: 3
+    hidden_act: gelu
+    hidden_dropout_prob: 0.0
+    patch_size: 16
 
-  model:
-    _target_: Projects_torch.model.synth_transformer_encoder.SynthTransformerEncoder
-    transformer:
-      _target_: Projects_torch.layers.transformer_encoder.TransformerE
-      d_model: 512
-      num_heads: 8
-      num_layers: 6
-      d_ff: 768 #2048
-      max_seq_length: 257 #65 #129 #65 # 128
-      dropout: 0.1
-      top_k: 5
+  # training param
+  epochs: 4000
+  path2save_model: C:\Users\moshe\PycharmProjects\checkpoints\ssl
+  model_name: data2vec_
 
-    conv_encoder:
-      _target_: Projects_torch.layers.conv_wav_encoder_2d.ConvFeatureExtractionModel
-      units: 512
-      conv_layers:
-        -
-          - 1 #128     # (in_channels, dim, kernel, stride)
-          - 512
-          - 4
-          - 1 #2
+  steps_per_epoch: 10
+  validation_steps: 10
 
-        -
-          - 512
-          - 512
-          - 3
-          - 1
+  batch_size:
+    train: 128
+    test: 1
+    valid: 128
 
-#        -
-#          - 512
-#          - 512
-#          - 3
-#          - 1
-
-#        -
-#          - 512
-#          - 512
-#          - 3 #2
-#          - 1
-
-      num_duplicate_layer:
-        - 1
-        - 1
-#        - 1
-#        - 1
-
-      dropout: 0.15
-      is_group_norm: False
-      is_layer_norm: True #False
-
-    linear_classifier:
-      _target_: Projects_torch.layers.linear_classifier_2.LinearClassifier
-      dropout: 0.2
-      outputs_dimension_per_outputs:
-        - 3
-        - 12
-        - 20
-        - 31
-        - 4
-        - 5
-        - 8
-        - 5
-        - 16
-
-
-  to_metrics: False
-
-#  metrics:
-#    _target_: Projects_torch.metrics.accuracy_2.CustomAccuracy2
-#    outputs_dimension_per_outputs:
-#      - 3
-#      - 12
-#      - 20
-#      - 31
-#      - 4
-#      - 5
-#      - 8
-#      - 5
-#      - 16
-
-  #    num_classes: 1
-#    index_y_true: 1
-
-  loss:
-#    - _target_: losses.spectral_magnitude_losses.Spectral_LogSTFTMagnitude_Loss
-    - _target_: Projects_torch.losses.l2_loss.L2Loss
-
-  loss_ce:
-    _target_: Projects_torch.losses.cross_entropy_loss_2.CELoss
-    num_classes: 1
-    index_y_true: 1
-    outputs_dimension_per_outputs:
-      - 3
-      - 12
-      - 20
-      - 31
-      - 4
-      - 5
-      - 8
-      - 5
-      - 16
-  num_ce_loss: 1
-
-  loss_l2: False
-
-  callbacks:
-    -
-      _target_: tensorflow.keras.callbacks.ModelCheckpoint
-      filepath: /home/moshelaufer/PycharmProjects/results/checkpoint/synth_autoencoder_noy/8/
-      save_best_only: True
-      save_freq: 7500 #'epoch'
-      initial_value_threshold: 5
-      monitor: 'linear_classifier_loss'
-      verbose: 1
-
-  to_schedule: True
+  # optimizer
+  optimizer:
+    _target_: tensorflow.keras.optimizers.Adam
+    learning_rate: 1e-4
 
   schedule:
     _target_: callbacks.WarmLRSchedule
@@ -145,47 +50,25 @@ TrainTask:
     max_learn_rate: 7.5e-5
     min_learn_rate: 1.5e-6
 
-  optimizer:
-    _target_: tensorflow.keras.optimizers.Adam
-    learning_rate: 1e-4
+  # losses
+  loss:
+    - _target_: Projects_torch.losses.l2_loss.L2Loss
 
+  # callbacks
+  callbacks:
+    -
+      _target_: tensorflow.keras.callbacks.ModelCheckpoint
+      filepath: /home/moshelaufer/PycharmProjects/results/checkpoint/synth_autoencoder_noy/8/
+      save_best_only: True
+      save_freq: 7500 #'epoch'
+      initial_value_threshold: 5
+      monitor: 'linear_classifier_loss'
+      verbose: 1
+
+  # dataloader
   processor:
     _target_: Projects_torch.processors.processor_synth_encoder_eml_spec.DataLoaderMelSpec
     autoencoder: False
     encoder: True
-    num_classes:
-      - 3
-      - 12
-      - 20
-      - 31
-      - 4
-      - 5
-      - 8
-      - 5
-      - 16
 
-    win_length: 256
-    n_fft: 1025
-
-  batch_size:
-    train: 128 # 240 #118 #48
-    test: 1
-    valid: 128 #118 #48
-
-  learning_rate: 3e-3 #0.5e-7
-
-  epochs: 4000
-  path2save_model: C:\Users\moshe\PycharmProjects\checkpoints\noy_encoder #/home/moshela/work/moshe/pycharm/checkpoints/noy/checkpoint_4.pt #    /home/moshelaufer/PycharmProjects/results/models/
-  model_name: synth_encoder_stft_noy
-  path2save_csv: /home/moshelaufer/PycharmProjects/results/csv/synth_autoencoder_2_stft/
-  num_outputs: 2 #10 #1
-  path2save_plot_model: /home/moshelaufer/PycharmProjects/results/plot/model_plot_tal_noise.png
-
-  steps_per_epoch: 10 # 2500
-  validation_steps: 150
-
-  results:
-    _target_: Projects_torch.results.results.Results
-    path2save_results: /home/moshelaufer/PycharmProjects/results/results/results
-    num_class: 100
-
+  num_workers: 2
